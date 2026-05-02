@@ -10,8 +10,9 @@ pipeline {
     environment {
         APP_NAME = "my-app"
         REPO_URL = "https://github.com/mohitjangra876/test-project.git"
-        CREDENTIALS_ID = "Github-Token"   // ⚠️ MUST match your Jenkins credentials
+        CREDENTIALS_ID = "Github-Token"
         BRANCH = "main"
+        CUSTOM_ENV = ""
     }
 
     stages {
@@ -54,15 +55,18 @@ pipeline {
         stage('Load ENV') {
             steps {
                 script {
-                    echo "🔧 Loading ENV variables"
+                    echo "🔧 Loading ENV variables safely"
 
-                    def lines = params.ENV_VARS.split("\n")
-                    for (l in lines) {
-                        def pair = l.split("=")
-                        if (pair.size() == 2) {
-                            env[pair[0].trim()] = pair[1].trim()
+                    def envList = params.ENV_VARS.split("\n")
+                    def envString = ""
+
+                    for (item in envList) {
+                        if (item.contains("=")) {
+                            envString += "-e " + item.trim() + " "
                         }
                     }
+
+                    env.CUSTOM_ENV = envString
                 }
             }
         }
@@ -94,6 +98,7 @@ pipeline {
                         echo "🚀 Deploying on SERVER (PM2)"
 
                         sh '''
+                        export $(echo ${CUSTOM_ENV} | sed 's/-e //g')
                         pm2 stop ${APP_NAME} || true
                         pm2 delete ${APP_NAME} || true
                         pm2 start npm --name ${APP_NAME} -- start
@@ -109,7 +114,11 @@ pipeline {
                         docker stop ${APP_NAME} || true
                         docker rm ${APP_NAME} || true
 
-                        docker run -d -p 3000:3000 --name ${APP_NAME} ${APP_NAME}
+                        docker run -d \
+                          -p 3000:3000 \
+                          --name ${APP_NAME} \
+                          ${CUSTOM_ENV} \
+                          ${APP_NAME}
                         '''
                     }
                 }
