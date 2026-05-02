@@ -10,7 +10,7 @@ pipeline {
     environment {
         APP_NAME = "my-app"
         REPO_URL = "https://github.com/mohitjangra876/test-project.git"
-        CREDENTIALS_ID = "github-creds"
+        CREDENTIALS_ID = "Github-Token"   // ⚠️ MUST match your Jenkins credentials
         BRANCH = "main"
     }
 
@@ -19,19 +19,23 @@ pipeline {
         stage('Checkout') {
             steps {
                 script {
+
                     if (params.PR_NUMBER?.trim()) {
+
                         echo "🚀 Checking out PR-${params.PR_NUMBER}"
 
                         checkout([
                             $class: 'GitSCM',
-                            branches: [[name: "refs/pull/${params.PR_NUMBER}/head"]],
+                            branches: [[name: "origin/pr/${params.PR_NUMBER}"]],
                             userRemoteConfigs: [[
                                 url: env.REPO_URL,
-                                credentialsId: env.CREDENTIALS_ID
+                                credentialsId: env.CREDENTIALS_ID,
+                                refspec: "+refs/pull/*/head:refs/remotes/origin/pr/*"
                             ]]
                         ])
 
                     } else {
+
                         echo "📦 Checking out main branch"
 
                         checkout([
@@ -105,10 +109,7 @@ pipeline {
                         docker stop ${APP_NAME} || true
                         docker rm ${APP_NAME} || true
 
-                        docker run -d \
-                          -p 3000:3000 \
-                          --name ${APP_NAME} \
-                          ${APP_NAME}
+                        docker run -d -p 3000:3000 --name ${APP_NAME} ${APP_NAME}
                         '''
                     }
                 }
