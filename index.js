@@ -7,6 +7,7 @@ app.get("/", (req, res) => {
   res.send(`Hello from Jenkins CI/CD 🚀 ENV: ${process.env.NODE_ENV}`);
 });
 
+console.log("Logs: --------- ");
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
